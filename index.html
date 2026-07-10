@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#6366F1" />
+<meta name="description" content="فین‌ترک - اپلیکیشن مدیریت مالی شخصی و مخاطبین" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="فین‌ترک" />
+<title>فین‌ترک - مدیریت مالی و مخاطبین شخصی</title>
+
+<!-- آیکون‌های برنامه -->
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+
+<!-- مانیفست PWA (قابلیت نصب + آماده برای تبدیل به APK) -->
+<link rel="manifest" href="manifest.json" />
+
+<!-- فونت فارسی وزیرمتن -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<!-- استایل اصلی -->
+<link rel="stylesheet" href="style.css" />
+
+<!--
+  کتابخانه Chart.js
+  اول از CDN بارگذاری می‌شود؛ اگر آفلاین بود، خودکار به فایل لوکال
+  در ./lib/chart.min.js سوییچ می‌کند (برای ساخت APK کاملاً آفلاین).
+-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="lib/chart.min.js"><\/script>');
+  }
+</script>
+</head>
+<body>
+
+  <!-- ============================================= -->
+  <!-- اسپلش اسکرین                                    -->
+  <!-- ============================================= -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <div class="splash-logo"><img src="assets/logo.png" alt="فین‌ترک" /></div>
+      <h1 class="splash-title">فین‌ترک</h1>
+      <p class="splash-subtitle">مدیریت هوشمند مالی و مخاطبین شما</p>
+      <div class="splash-loader"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- کانتینر پیام‌های Toast (سراسری)                 -->
+  <!-- ============================================= -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- ============================================= -->
+  <!-- صفحه ورود                                       -->
+  <!-- ============================================= -->
+  <div id="loginScreen" class="screen login-screen hidden">
+    <div class="login-wrapper">
+      <div class="login-brand">
+        <div class="login-logo"><img src="assets/logo.png" alt="فین‌ترک" /></div>
+        <h1>فین‌ترک</h1>
+        <p>پول و مخاطبینت رو هوشمندانه مدیریت کن</p>
+      </div>
+
+      <!-- فرم ورود -->
+      <form id="loginForm" class="auth-card" novalidate>
+        <h2 id="authFormTitle">خوش برگشتی</h2>
+        <p class="auth-subtitle" id="authFormSubtitle">برای ادامه وارد شو</p>
+
+        <div class="form-group">
+          <label for="loginUsername">نام کاربری</label>
+          <input type="text" id="loginUsername" name="username" maxlength="30" placeholder="نام کاربری را وارد کنید" autocomplete="username" required />
+          <span class="field-error" id="loginUsernameError"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">رمز عبور</label>
+          <div class="password-wrapper">
+            <input type="password" id="loginPassword" name="password" maxlength="25" placeholder="رمز عبور را وارد کنید" autocomplete="current-password" required />
+            <button type="button" class="toggle-password" data-target="loginPassword" aria-label="نمایش/مخفی کردن رمز عبور">👁️</button>
+          </div>
+          <span class="field-error" id="loginPasswordError"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="loginSubmitBtn">ورود</button>
+
+        <p class="auth-switch">
+          حساب کاربری نداری؟
+          <button type="button" id="showRegisterBtn" class="link-btn">بساز یکی</button>
+        </p>
+      </form>
+
+      <!-- فرم ثبت‌نام (پیش‌فرض مخفی) -->
+      <form id="registerForm" class="auth-card hidden" novalidate>
+        <h2>ساخت حساب کاربری</h2>
+        <p class="auth-subtitle">پروفایل فین‌ترک خودتو بساز</p>
+
+        <div class="form-group">
+          <label for="registerUsername">نام کاربری</label>
+          <input type="text" id="registerUsername" name="username" maxlength="30" placeholder="یک نام کاربری انتخاب کن" required />
+          <span class="field-error" id="registerUsernameError"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="registerPassword">رمز عبور</label>
+          <div class="password-wrapper">
+            <input type="password" id="registerPassword" name="password" maxlength="25" placeholder="یک رمز عبور انتخاب کن" required />
+            <button type="button" class="toggle-password" data-target="registerPassword" aria-label="نمایش/مخفی کردن رمز عبور">👁️</button>
+          </div>
+          <span class="field-error" id="registerPasswordError"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="registerConfirmPassword">تکرار رمز عبور</label>
+          <div class="password-wrapper">
+            <input type="password" id="registerConfirmPassword" name="confirmPassword" maxlength="25" placeholder="رمز عبور را دوباره وارد کن" required />
+            <button type="button" class="toggle-password" data-target="registerConfirmPassword" aria-label="نمایش/مخفی کردن رمز عبور">👁️</button>
+          </div>
+          <span class="field-error" id="registerConfirmPasswordError"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="registerSubmitBtn">ساخت حساب</button>
+
+        <p class="auth-switch">
+          قبلاً حساب داری؟
+          <button type="button" id="showLoginBtn" class="link-btn">ورود</button>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- بدنه اصلی برنامه                                -->
+  <!-- ============================================= -->
+  <div id="appShell" class="app-shell hidden">
+
+    <!-- ===== هدر بالا ===== -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="header-logo"><img src="assets/logo.png" alt="فین‌ترک" /></span>
+        <span class="header-title" id="viewTitle">داشبورد</span>
+      </div>
+      <div class="header-right">
+        <button id="themeToggleBtn" class="icon-btn" aria-label="تغییر تم" title="تغییر تم">🌙</button>
+        <button id="logoutBtn" class="icon-btn" aria-label="خروج" title="خروج">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4" />
+            <polyline points="8 17 3 12 8 7" />
+            <line x1="3" y1="12" x2="15" y2="12" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== محتوای اصلی ===== -->
+    <main class="app-main" id="appMain">
+
+      <!-- ============ داشبورد ============ -->
+      <section id="dashboardView" class="view active-view">
+
+        <div class="greeting-card">
+          <p class="greeting-text">سلام، <span id="greetingUsername">کاربر</span> 👋</p>
+          <p class="greeting-date" id="greetingDate"></p>
+        </div>
+
+        <!-- کارت موجودی -->
+        <div class="balance-card">
+          <div class="balance-label-row">
+            <p class="balance-label">موجودی فعلی</p>
+            <button class="balance-visibility-btn" id="toggleBalanceVisibilityBtn" aria-label="نمایش یا مخفی کردن موجودی" title="نمایش/مخفی کردن موجودی">👁️</button>
+          </div>
+          <h2 class="balance-amount" id="dashBalance">۰</h2>
+          <div class="balance-mini-row">
+            <div class="mini-stat income">
+              <span class="mini-icon">⬆️</span>
+              <div>
+                <p class="mini-label">درآمد</p>
+                <p class="mini-value" id="dashTotalIncome">۰</p>
+              </div>
+            </div>
+            <div class="mini-stat expense">
+              <span class="mini-icon">⬇️</span>
+              <div>
+                <p class="mini-label">هزینه‌ها</p>
+                <p class="mini-value" id="dashTotalExpense">۰</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- آمار کلی -->
+        <div class="stats-grid">
+          <div class="stat-box">
+            <p class="stat-number" id="dashTotalTransactions">۰</p>
+            <p class="stat-caption">تراکنش‌ها</p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-number" id="dashTotalContacts">۰</p>
+            <p class="stat-caption">مخاطبین</p>
+          </div>
+        </div>
+
+        <!-- کارت بودجه ماهانه -->
+        <div class="card budget-card">
+          <div class="card-header-row">
+            <h3>بودجه ماهانه</h3>
+            <button class="link-btn" id="editBudgetBtn">ویرایش</button>
+          </div>
+          <div id="budgetContent">
+            <p class="budget-empty-text" id="budgetEmptyText">بودجه‌ای برای این ماه تنظیم نشده.</p>
+            <div id="budgetProgressWrapper" class="hidden">
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="budgetProgressFill"></div>
+              </div>
+              <div class="budget-figures">
+                <span id="budgetUsedText">استفاده‌شده: ۰</span>
+                <span id="budgetRemainingText">باقی‌مانده: ۰</span>
+              </div>
+              <p class="budget-warning hidden" id="budgetWarningText"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- نمودار کوچک: درآمد در برابر هزینه -->
+        <div class="card chart-card">
+          <h3>درآمد در برابر هزینه</h3>
+          <div class="chart-wrapper-small">
+            <canvas id="dashboardBarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- تراکنش‌های اخیر -->
+        <div class="card">
+          <div class="card-header-row">
+            <h3>تراکنش‌های اخیر</h3>
+            <button class="link-btn" data-nav="transactionsView">مشاهده همه</button>
+          </div>
+          <div id="recentTransactionsList" class="transaction-list"></div>
+        </div>
+      </section>
+
+      <!-- ============ تراکنش‌ها ============ -->
+      <section id="transactionsView" class="view">
+
+        <!-- تب‌ها: همه / درآمد / هزینه -->
+        <div class="segmented-control">
+          <button class="segmented-btn active" data-filter-type="all">همه</button>
+          <button class="segmented-btn" data-filter-type="income">درآمد</button>
+          <button class="segmented-btn" data-filter-type="expense">هزینه</button>
+        </div>
+
+        <!-- جستجو و فیلتر -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="transactionSearchInput" placeholder="جستجو بر اساس عنوان..." />
+          </div>
+          <button class="icon-btn filter-toggle-btn" id="toggleFiltersBtn" aria-label="نمایش فیلترها">⚙️</button>
+        </div>
+
+        <div class="advanced-filters hidden" id="advancedFilters">
+          <div class="form-group">
+            <label for="filterCategory">دسته‌بندی</label>
+            <select id="filterCategory">
+              <option value="">همه دسته‌ها</option>
+              <option value="غذا">🍔 غذا</option>
+              <option value="حمل‌ونقل">🚗 حمل‌ونقل</option>
+              <option value="قبوض">🧾 قبوض</option>
+              <option value="خرید">🛍️ خرید</option>
+              <option value="سرگرمی">🎬 سرگرمی</option>
+              <option value="سلامت">🏥 سلامت</option>
+              <option value="متفرقه">📦 متفرقه</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="filterDateFrom">از تاریخ</label>
+              <input type="date" id="filterDateFrom" />
+            </div>
+            <div class="form-group">
+              <label for="filterDateTo">تا تاریخ</label>
+              <input type="date" id="filterDateTo" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="sortSelect">مرتب‌سازی بر اساس</label>
+            <select id="sortSelect">
+              <option value="newest">جدیدترین</option>
+              <option value="oldest">قدیمی‌ترین</option>
+              <option value="highest">بیشترین مبلغ</option>
+              <option value="lowest">کمترین مبلغ</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-block" id="clearFiltersBtn">پاک کردن فیلترها</button>
+        </div>
+
+        <!-- لیست تراکنش‌ها -->
+        <div id="fullTransactionList" class="transaction-list"></div>
+        <div id="transactionsEmptyState" class="empty-state hidden">
+          <p class="empty-icon">📭</p>
+          <p class="empty-title">تراکنشی یافت نشد</p>
+          <p class="empty-subtitle">فیلترها رو تغییر بده یا یه تراکنش جدید اضافه کن</p>
+        </div>
+      </section>
+
+      <!-- ============ مخاطبین ============ -->
+      <section id="contactsView" class="view">
+
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="contactSearchInput" placeholder="جستجوی مخاطبین..." />
+          </div>
+          <select id="contactSortSelect" class="inline-select">
+            <option value="firstName">الف تا ی</option>
+            <option value="firstNameDesc">ی تا الف</option>
+            <option value="recent">اخیراً اضافه‌شده</option>
+          </select>
+        </div>
+
+        <div id="contactsList" class="contact-list"></div>
+        <div id="contactsEmptyState" class="empty-state hidden">
+          <p class="empty-icon">👤</p>
+          <p class="empty-title">هنوز مخاطبی نداری</p>
+          <p class="empty-subtitle">دکمه + رو بزن تا اولین مخاطبتو اضافه کنی</p>
+        </div>
+      </section>
+
+      <!-- ============ گزارش‌ها ============ -->
+      <section id="reportsView" class="view">
+
+        <div class="segmented-control">
+          <button class="segmented-btn active" data-report-range="daily">روزانه</button>
+          <button class="segmented-btn" data-report-range="weekly">هفتگی</button>
+          <button class="segmented-btn" data-report-range="monthly">ماهانه</button>
+        </div>
+
+        <!-- خلاصه آماری -->
+        <div class="card">
+          <h3>خلاصه آماری</h3>
+          <div class="summary-grid" id="reportSummaryGrid">
+            <div class="summary-item">
+              <p class="summary-label">مجموع درآمد</p>
+              <p class="summary-value income-color" id="reportTotalIncome">۰</p>
+            </div>
+            <div class="summary-item">
+              <p class="summary-label">مجموع هزینه</p>
+              <p class="summary-value expense-color" id="reportTotalExpense">۰</p>
+            </div>
+            <div class="summary-item">
+              <p class="summary-label">پس‌انداز خالص</p>
+              <p class="summary-value" id="reportNetSavings">۰</p>
+            </div>
+            <div class="summary-item">
+              <p class="summary-label">میانگین هزینه</p>
+              <p class="summary-value" id="reportAvgExpense">۰</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- نمودار توزیع دسته‌بندی -->
+        <div class="card chart-card">
+          <h3>توزیع هزینه بر اساس دسته</h3>
+          <div class="chart-wrapper">
+            <canvas id="categoryDoughnutChart"></canvas>
+          </div>
+          <div id="categoryLegend" class="category-legend"></div>
+        </div>
+
+        <!-- نمودار درآمد در برابر هزینه -->
+        <div class="card chart-card">
+          <h3>درآمد در برابر هزینه</h3>
+          <div class="chart-wrapper">
+            <canvas id="incomeExpenseBarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- نمودار روند مالی -->
+        <div class="card chart-card">
+          <h3>روند مالی</h3>
+          <div class="chart-wrapper">
+            <canvas id="trendLineChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ تنظیمات ============ -->
+      <section id="settingsView" class="view">
+
+        <div class="card settings-profile-card">
+          <div class="profile-avatar-wrapper">
+            <div class="profile-avatar" id="profileAvatar">👤</div>
+            <button type="button" class="profile-avatar-edit-btn" id="changeProfilePhotoBtn" aria-label="تغییر عکس پروفایل" title="تغییر عکس پروفایل">📷</button>
+            <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" />
+          </div>
+          <p class="profile-username" id="settingsUsername">نام کاربری</p>
+          <p class="profile-since" id="settingsMemberSince">عضویت از --</p>
+        </div>
+
+        <div class="card">
+          <h3>تنظیمات</h3>
+          <div class="settings-row">
+            <span>حالت تاریک</span>
+            <label class="switch">
+              <input type="checkbox" id="darkModeSwitch" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <span>واحد پول</span>
+            <select id="currencySelect" class="inline-select">
+              <option value="تومان">تومان</option>
+              <option value="$">دلار آمریکا ($)</option>
+              <option value="€">یورو (€)</option>
+              <option value="£">پوند (£)</option>
+              <option value="﷼">ریال (﷼)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>بودجه</h3>
+          <button class="btn btn-secondary btn-block" id="openBudgetModalBtn">تنظیم بودجه ماهانه</button>
+        </div>
+
+        <div class="card">
+          <h3>امنیت</h3>
+          <button class="btn btn-secondary btn-block" id="openChangePasswordBtn">تغییر رمز عبور</button>
+        </div>
+
+        <div class="card">
+          <h3>مدیریت داده‌ها</h3>
+          <button class="btn btn-secondary btn-block" id="exportDataBtn">دریافت خروجی داده (JSON)</button>
+          <button class="btn btn-danger-outline btn-block" id="resetDataBtn">بازنشانی تمامی داده‌ها</button>
+        </div>
+
+        <button class="btn btn-danger btn-block" id="settingsLogoutBtn">خروج از حساب</button>
+
+        <p class="app-version">فین‌ترک نسخه ۱.۰.۰</p>
+      </section>
+
+    </main>
+
+    <!-- ===== دکمه شناور افزودن ===== -->
+    <button id="fabAddBtn" class="fab" aria-label="افزودن">+</button>
+
+    <!-- ===== نوار ناوبری پایین ===== -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="dashboardView" data-title="داشبورد">
+        <span class="nav-icon svg-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 11.5 12 4l9 7.5" />
+            <path d="M5 10v9a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1v-9" />
+          </svg>
+        </span>
+        <span class="nav-label">خانه</span>
+      </button>
+      <button class="nav-item" data-view="transactionsView" data-title="تراکنش‌ها">
+        <span class="nav-icon">💳</span><span class="nav-label">تراکنش‌ها</span>
+      </button>
+      <button class="nav-item" data-view="contactsView" data-title="مخاطبین">
+        <span class="nav-icon svg-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3.2" />
+            <path d="M2.5 20c0-3.4 2.9-6 6.5-6s6.5 2.6 6.5 6" />
+            <circle cx="17" cy="9" r="2.4" />
+            <path d="M15.5 14.2c2.6.5 4.5 2.5 4.5 5" />
+          </svg>
+        </span>
+        <span class="nav-label">مخاطبین</span>
+      </button>
+      <button class="nav-item" data-view="reportsView" data-title="گزارش‌ها">
+        <span class="nav-icon">📊</span><span class="nav-label">گزارش‌ها</span>
+      </button>
+      <button class="nav-item" data-view="settingsView" data-title="تنظیمات">
+        <span class="nav-icon">⚙️</span><span class="nav-label">تنظیمات</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: افزودن/ویرایش درآمد                       -->
+  <!-- ============================================= -->
+  <div id="incomeModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="incomeModalTitle">افزودن درآمد</h3>
+        <button class="modal-close-btn" data-close-modal="incomeModal">✕</button>
+      </div>
+      <form id="incomeForm" class="modal-form" novalidate>
+        <input type="hidden" id="incomeId" />
+        <div class="form-group">
+          <label for="incomeTitle">عنوان</label>
+          <input type="text" id="incomeTitle" maxlength="60" placeholder="مثلاً: حقوق، پروژه آزاد" required />
+          <span class="field-error" id="incomeTitleError"></span>
+        </div>
+        <div class="form-group">
+          <label for="incomeAmount">مبلغ</label>
+          <input type="number" id="incomeAmount" step="100000" min="1" placeholder="۰" required />
+          <span class="field-error" id="incomeAmountError"></span>
+        </div>
+        <div class="form-group">
+          <label for="incomeDate">تاریخ</label>
+          <input type="date" id="incomeDate" required />
+          <span class="field-error" id="incomeDateError"></span>
+        </div>
+        <div class="form-group">
+          <label for="incomeDescription">توضیحات (اختیاری)</label>
+          <textarea id="incomeDescription" maxlength="256" rows="3" placeholder="یادداشتی اضافه کن..."></textarea>
+          <span class="field-error" id="incomeDescriptionError"></span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="incomeModal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره درآمد</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: افزودن/ویرایش هزینه                       -->
+  <!-- ============================================= -->
+  <div id="expenseModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="expenseModalTitle">افزودن هزینه</h3>
+        <button class="modal-close-btn" data-close-modal="expenseModal">✕</button>
+      </div>
+      <form id="expenseForm" class="modal-form" novalidate>
+        <input type="hidden" id="expenseId" />
+        <div class="form-group">
+          <label for="expenseTitle">عنوان</label>
+          <input type="text" id="expenseTitle" maxlength="60" placeholder="مثلاً: خرید، اجاره" required />
+          <span class="field-error" id="expenseTitleError"></span>
+        </div>
+        <div class="form-group">
+          <label for="expenseAmount">مبلغ</label>
+          <input type="number" id="expenseAmount" step="100000" min="1" placeholder="۰" required />
+          <span class="field-error" id="expenseAmountError"></span>
+        </div>
+        <div class="form-group">
+          <label for="expenseCategory">دسته‌بندی</label>
+          <select id="expenseCategory" required>
+            <option value="غذا">🍔 غذا</option>
+            <option value="حمل‌ونقل">🚗 حمل‌ونقل</option>
+            <option value="قبوض">🧾 قبوض</option>
+            <option value="خرید">🛍️ خرید</option>
+            <option value="سرگرمی">🎬 سرگرمی</option>
+            <option value="سلامت">🏥 سلامت</option>
+            <option value="متفرقه">📦 متفرقه</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="expenseDate">تاریخ</label>
+          <input type="date" id="expenseDate" required />
+          <span class="field-error" id="expenseDateError"></span>
+        </div>
+        <div class="form-group">
+          <label for="expenseDescription">توضیحات (اختیاری)</label>
+          <textarea id="expenseDescription" maxlength="256" rows="3" placeholder="یادداشتی اضافه کن..."></textarea>
+          <span class="field-error" id="expenseDescriptionError"></span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="expenseModal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره هزینه</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: افزودن/ویرایش مخاطب                       -->
+  <!-- ============================================= -->
+  <div id="contactModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="contactModalTitle">افزودن مخاطب</h3>
+        <button class="modal-close-btn" data-close-modal="contactModal">✕</button>
+      </div>
+      <form id="contactForm" class="modal-form" novalidate>
+        <input type="hidden" id="contactId" />
+        <div class="form-row">
+          <div class="form-group">
+            <label for="contactFirstName">نام</label>
+            <input type="text" id="contactFirstName" maxlength="40" placeholder="علی" required />
+            <span class="field-error" id="contactFirstNameError"></span>
+          </div>
+          <div class="form-group">
+            <label for="contactLastName">نام خانوادگی</label>
+            <input type="text" id="contactLastName" maxlength="40" placeholder="محمدی" required />
+            <span class="field-error" id="contactLastNameError"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="contactPhone">شماره تلفن</label>
+          <input type="tel" id="contactPhone" maxlength="11" inputmode="numeric" pattern="[0-9]*" placeholder="09123456789" required />
+          <span class="field-error" id="contactPhoneError"></span>
+        </div>
+        <div class="form-group">
+          <label for="contactCard">شماره کارت بانکی (اختیاری)</label>
+          <input type="text" id="contactCard" maxlength="24" placeholder="XXXX XXXX XXXX XXXX" />
+          <span class="field-error" id="contactCardError"></span>
+        </div>
+        <div class="form-group">
+          <label for="contactNotes">یادداشت (اختیاری)</label>
+          <textarea id="contactNotes" maxlength="256" rows="3" placeholder="یادداشتی درباره این مخاطب اضافه کن..."></textarea>
+          <span class="field-error" id="contactNotesError"></span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="contactModal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره مخاطب</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: نمایش جزئیات مخاطب                        -->
+  <!-- ============================================= -->
+  <div id="contactDetailsModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>جزئیات مخاطب</h3>
+        <button class="modal-close-btn" data-close-modal="contactDetailsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="contact-details-avatar" id="contactDetailsAvatar">عم</div>
+        <h2 class="contact-details-name" id="contactDetailsName">علی محمدی</h2>
+
+        <div class="detail-row">
+          <span class="detail-label">📞 شماره تلفن</span>
+          <span class="detail-value" id="contactDetailsPhone">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">💳 شماره کارت</span>
+          <span class="detail-value" id="contactDetailsCard">-</span>
+        </div>
+        <div class="detail-row detail-notes-row">
+          <span class="detail-label">📝 یادداشت</span>
+          <p class="detail-value" id="contactDetailsNotes">-</p>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">🗓️ تاریخ افزودن</span>
+          <span class="detail-value" id="contactDetailsCreated">-</span>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger-outline" id="contactDetailsDeleteBtn">حذف</button>
+          <button type="button" class="btn btn-primary" id="contactDetailsEditBtn">ویرایش</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: تنظیم بودجه ماهانه                        -->
+  <!-- ============================================= -->
+  <div id="budgetModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>تنظیم بودجه ماهانه</h3>
+        <button class="modal-close-btn" data-close-modal="budgetModal">✕</button>
+      </div>
+      <form id="budgetForm" class="modal-form" novalidate>
+        <p class="modal-description">یک سقف هزینه برای این ماه تعیین کن. وقتی بهش نزدیک بشی بهت هشدار می‌دیم.</p>
+        <div class="form-group">
+          <label for="budgetAmount">سقف بودجه ماهانه</label>
+          <input type="number" id="budgetAmount" step="100000" min="1" placeholder="۰" required />
+          <span class="field-error" id="budgetAmountError"></span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="budgetModal">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره بودجه</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: تغییر رمز عبور                            -->
+  <!-- ============================================= -->
+  <div id="changePasswordModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>تغییر رمز عبور</h3>
+        <button class="modal-close-btn" data-close-modal="changePasswordModal">✕</button>
+      </div>
+      <form id="changePasswordForm" class="modal-form" novalidate>
+        <div class="form-group">
+          <label for="currentPasswordInput">رمز عبور فعلی</label>
+          <input type="password" id="currentPasswordInput" maxlength="25" placeholder="رمز عبور فعلی را وارد کن" required />
+          <span class="field-error" id="currentPasswordError"></span>
+        </div>
+        <div class="form-group">
+          <label for="newPasswordInput">رمز عبور جدید</label>
+          <input type="password" id="newPasswordInput" maxlength="25" placeholder="رمز عبور جدید را وارد کن" required />
+          <span class="field-error" id="newPasswordError"></span>
+        </div>
+        <div class="form-group">
+          <label for="confirmNewPasswordInput">تکرار رمز عبور جدید</label>
+          <input type="password" id="confirmNewPasswordInput" maxlength="25" placeholder="رمز عبور جدید را دوباره وارد کن" required />
+          <span class="field-error" id="confirmNewPasswordError"></span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="changePasswordModal">انصراف</button>
+          <button type="submit" class="btn btn-primary">به‌روزرسانی رمز عبور</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: منوی افزودن (Action Sheet دکمه شناور)     -->
+  <!-- ============================================= -->
+  <div id="addOptionsModal" class="modal-overlay hidden">
+    <div class="modal-box action-sheet">
+      <div class="modal-header">
+        <h3>چی می‌خوای اضافه کنی؟</h3>
+        <button class="modal-close-btn" data-close-modal="addOptionsModal">✕</button>
+      </div>
+      <div class="action-sheet-options">
+        <button class="action-sheet-item" id="addIncomeOption">
+          <span class="action-sheet-icon income-bg">⬆️</span>
+          <span>افزودن درآمد</span>
+        </button>
+        <button class="action-sheet-item" id="addExpenseOption">
+          <span class="action-sheet-icon expense-bg">⬇️</span>
+          <span>افزودن هزینه</span>
+        </button>
+        <button class="action-sheet-item" id="addContactOption">
+          <span class="action-sheet-icon contact-bg">👤</span>
+          <span>افزودن مخاطب</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================= -->
+  <!-- مودال: دیالوگ تایید عمومی                        -->
+  <!-- ============================================= -->
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal-box confirm-box">
+      <div class="modal-body">
+        <p class="confirm-icon" id="confirmIcon">⚠️</p>
+        <h3 id="confirmTitle">مطمئنی؟</h3>
+        <p id="confirmMessage">این عمل قابل بازگشت نیست.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="confirmCancelBtn">انصراف</button>
+          <button type="button" class="btn btn-danger" id="confirmOkBtn">تایید</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- جاوااسکریپت اصلی -->
+  <script src="script.js"></script>
+
+  <!-- ثبت Service Worker (کش آفلاین / پشتیبانی PWA) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then((reg) => console.log('Service worker registered:', reg.scope))
+          .catch((err) => console.warn('Service worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
